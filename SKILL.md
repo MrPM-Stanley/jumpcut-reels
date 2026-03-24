@@ -2,8 +2,6 @@
 name: jumpcut-reels
 description: >
   從長影片 + SRT 字幕檔，自動產出適合 IG Reels / YouTube Shorts / TikTok 的 Jump Cut 短影音。
-  包含：字幕分析、精彩片段萃取、Jump Cut 剪輯、9:16 格式轉換（模糊背景＋清晰畫面置中）、
-  綜藝字卡（白字黑描邊＋關鍵字黃色高亮）。
 
   務必在以下情境觸發此 skill：
   - 當使用者說「幫我剪短影音」「做 Reels」「做 Shorts」「剪 TikTok」
@@ -12,20 +10,26 @@ description: >
   - 當使用者提到「Jump Cut」「跳剪」「短影音」「Reels」「Shorts」
   - 當使用者有一個 Podcast / 訪談 / 長影片，想從中萃取精華片段
   - 即使使用者只是說「幫我把這個影片變短」，只要有字幕檔可用也應觸發
+  - English: "cut highlights", "make short clips", "edit into reels/shorts"
   - 不要在使用者只是想轉檔、壓縮、或做字幕翻譯時觸發
+  - 不要在使用者只有逐字稿文字、沒有影片檔時觸發（那是 transcript-to-outline）
 ---
 
 # Jump Cut 短影音產生器
 
-從長影片 + SRT 字幕檔，自動產出 IG Reels / YouTube Shorts / TikTok 格式的 Jump Cut 短影音。
+從長影片 + SRT 字幕檔，自動產出 IG Reels / YouTube Shorts / TikTok 格式的 Jump Cut 短影音。包含字幕分析、精彩片段萃取、Jump Cut 剪輯、9:16 格式轉換（模糊背景＋清晰畫面置中）、綜藝字卡（白字黑描邊＋關鍵字黃色高亮）。
 
-## 為什麼 Jump Cut 有效
+<decision_boundary>
 
-短影音平台的演算法偏好高留存率內容。Jump Cut 透過移除停頓、過渡語、重複內容，只保留最有衝擊力的句子，讓觀眾感受到資訊密度極高的節奏感。這種快節奏在前 3 秒就能抓住注意力，大幅提升完播率。
+**何時用此 skill：** 使用者提供影片檔 + SRT 字幕檔，想要產出短影音。
+**何時不用：** 只有文字逐字稿（→ transcript-to-outline）、只要翻譯字幕（→ srt-translator）、只要轉檔/壓縮（→ 一般 ffmpeg）。
+**成功輸出：** 一支 1080x1920 的 MP4 短影音，含綜藝字卡和標題。
 
-## 完整流程
+</decision_boundary>
 
-### Phase 1：分析字幕檔
+<workflow>
+
+## Phase 1：分析字幕檔
 
 1. 讀取 SRT 字幕檔（通常很大，用 Read tool 分段讀取）
 2. 將字幕解析成連續文字流，標記每段的時間碼
@@ -38,7 +42,7 @@ description: >
 
 5. 向使用者展示候選段落清單（含時間碼和主題摘要），讓使用者選擇或確認
 
-### Phase 2：設計 Jump Cut
+## Phase 2：設計 Jump Cut
 
 **工作順序很重要。** 這個階段最容易犯的錯誤是「在腦中精煉字幕後才列出來」，導致字幕與 SRT 原文不符。正確的做法是先把 SRT 原文原封不動列出來，標記保留/跳過，讓使用者看到的就是最終會出現在畫面上的文字。使用者確認後才進入渲染。
 
@@ -56,19 +60,8 @@ description: >
 
 #### Step 2：標記保留/跳過
 
-在表格中標記每句的保留/跳過決定：
-
-**保留的句子：**
-- Hook 開場句（挑戰認知、拋出問題）
-- 核心論點和關鍵數據
-- 情緒高點（驚訝、強調、轉折）
-- 結論句
-
-**跳過的句子：**
-- 主持人的過渡語（「好」「對」「那我想請教」）
-- 重複說明同一件事
-- 純語助詞（單獨一個「對」「嗯」）
-- 與核心論點無關的支線
+**保留的句子：** Hook 開場句、核心論點和關鍵數據、情緒高點、結論句。
+**跳過的句子：** 主持人的過渡語（「好」「對」「那我想請教」）、重複說明、純語助詞、與核心論點無關的支線。
 
 #### Step 3：敘事完整性檢查
 
@@ -76,32 +69,32 @@ description: >
 
 #### Step 4：等使用者確認
 
-把完整表格展示給使用者，明確說明哪些保留、哪些跳過。**使用者確認後才進入 Phase 3 渲染。** 這一步不能跳過——使用者在這裡可以發現選錯句、漏句、或斷句不合理的問題。
+把完整表格展示給使用者，明確說明哪些保留、哪些跳過。**使用者確認後才進入 Phase 3 渲染。** 這一步不能跳過。
 
-### Phase 2b：標題設計
+## Phase 2b：標題設計
 
-每支短影音必須有一個標題，顯示在上方 400px 的模糊背景區域，幫助觀眾在前 1 秒就理解內容主題。標題原則：
+每支短影音必須有一個標題，顯示在上方 400px 的模糊背景區域。標題原則：
 - 一句話點出這段在講什麼（如「什麼是機器人理財」「定期定額只成功一半？」）
 - 不超過 10 個中文字
 - 用問句或反直覺語氣更能抓住注意力
 
-### Phase 3：影片剪輯
+## Phase 3：影片剪輯
 
-使用 ffmpeg 執行剪輯。這裡有一個關鍵的影音同步技巧：
+使用 ffmpeg 執行剪輯。
 
 #### 影音同步的正確做法（兩段式擷取）
 
-直接用 `-ss` 在 `-i` 前面做 keyframe seeking 會導致音畫不同步，因為影片會跳到最近的關鍵幀，但音訊是精準的。解法是兩段式：
+直接用 `-ss` 在 `-i` 前面做 keyframe seeking 會導致音畫不同步。解法是兩段式：
 
 ```
-第一段：快速擷取大範圍
+第一段：快速擷取大範圍（-ss 在 -i 前面，速度快）
   ffmpeg -y -ss <range_start> -to <range_end> -i <大檔案> \
     -c:v libx264 -preset fast -crf 16 \
     -c:a aac -b:a 192k \
     -avoid_negative_ts make_zero \
     <中間檔.mp4>
 
-第二段：從短檔案精準切割
+第二段：從短檔案精準切割（-ss 在 -i 後面，精準）
   ffmpeg -y -i <中間檔.mp4> \
     -ss <relative_start> -to <relative_end> \
     -c:v libx264 -preset fast -crf 18 \
@@ -110,8 +103,6 @@ description: >
     -avoid_negative_ts make_zero \
     <片段.mp4>
 ```
-
-**為什麼這樣做：** 第一段 `-ss` 在 `-i` 前面，速度快（跳過前面幾 GB 的資料）。第二段 `-ss` 在 `-i` 後面，精準但對短檔案來說不慢。`-async 1` 強制音訊重新對齊。
 
 #### 執行步驟
 
@@ -146,41 +137,15 @@ python3 <skill_path>/scripts/jumpcut_render.py \
   --output <輸出.mp4>
 ```
 
-如果腳本不可用或需要自訂，以下是核心 ffmpeg filter 流程：
+如果腳本不可用或需要自訂，參見 `references/ffmpeg-filters.md`。
 
-#### 9:16 格式轉換（模糊背景 + 清晰畫面）
+</workflow>
 
-標準構圖（1080x1080 正方形裁切，top=400）：
-```
-[0:v]scale=1080:1920:force_original_aspect_ratio=increase,
-     crop=1080:1920,gblur=sigma=30[bg];
-[0:v]scale=-2:1080,crop=1080:1080[fg];
-[bg][fg]overlay=0:400[comp];
-[comp]ass=<字幕檔.ass>[outv]
-```
+<tool_rules>
 
-這個 filter 做四件事：
-1. 把原始畫面放大裁切填滿 1080x1920，加高斯模糊作為背景
-2. 把原始畫面正方形裁切為 1080x1080（聚焦人物）
-3. 把清晰畫面疊在模糊背景上，距頂端 400px
-4. 燒入 ASS 字幕
+## Phase 4：綜藝字卡
 
-### Phase 4：綜藝字卡
-
-生成 ASS 格式字幕檔。風格設定：
-
-```
-[V4+ Styles]
-Style: Main,Noto Sans TC,75,
-  PrimaryColour=&H00FFFFFF (白色),
-  OutlineColour=&H00000000 (黑色描邊),
-  Bold=-1, Outline=5, Shadow=2,
-  Alignment=2 (底部置中),
-  MarginV=280
-```
-
-**關鍵字黃色高亮：** 在 ASS 文字中使用 `{\c&H00D7FF&}關鍵字{\c&HFFFFFF&}` 切換顏色。
-ASS 使用 BGR 色彩格式，所以 `&H00D7FF&` 是暖黃色。
+render 腳本已內建 ASS 字幕產生邏輯。以下是你在準備 `--subtitles` JSON 時必須遵守的規則：
 
 **字幕時間計算（重要）：** 不要用 SRT 的理論時長來計算 ASS 字幕的累積時間，因為 ffmpeg 編碼後每段的實際時長會比理論值多 0.08~0.10 秒，累積到後段會導致字幕與語音明顯不同步。正確做法是用 `ffprobe` 取得每個切割片段的**實際時長**，再用實際時長來計算字幕起止時間。render 腳本已內建此邏輯。
 
@@ -190,21 +155,20 @@ ASS 使用 BGR 色彩格式，所以 `&H00D7FF&` 是暖黃色。
 - 標記 1-2 個最重要的詞做黃色高亮
 - **禁止**：刪字、縮寫、改寫、合併句子、省略語助詞
 
-**換行符號必須用 `\\N`（ASS 語法），絕對不可用 `\n`。** 這是因為 `--subtitles` 參數是 JSON 字串，JSON 的 `\n` 會被 Python `json.loads()` 解析成真正的換行字元（ASCII 0x0A），而 ASS 格式的 Dialogue 行必須是單一行文字——一旦出現真正的換行，ASS parser 就會在換行處截斷，導致字幕只顯示第一行就消失。`\\N` 在 JSON 裡會被解析成字面的 `\N`（兩個字元），而 `\N` 正是 ASS 的換行語法。範例：
+**換行符號必須用 `\\N`（ASS 語法），絕對不可用 `\n`。** JSON 的 `\n` 會被 Python `json.loads()` 解析成真正的換行字元（ASCII 0x0A），而 ASS 格式的 Dialogue 行必須是單一行文字。`\\N` 在 JSON 裡會被解析成字面的 `\N`，正是 ASS 的換行語法。範例：
 ```json
 {"text": "那我個人認為退休是\\N所有理財裡面最複雜的一塊", "highlights": ["最複雜"]}
 ```
-這樣字幕就會正確顯示為兩行。
 
-### Phase 4b：Overlay 卡片檢查（必要步驟）
+完整 ASS style 定義與 overlay 卡片規格見 `references/ass-subtitle-format.md`。
 
-使用 `--fg-size` 做正方形裁切時，原始 16:9 畫面會被裁成正方形，講者如果不在畫面中央（例如雙人訪談的遠景鏡頭、講者走到畫面邊緣），裁切後中央區域就會變成空桌子或器材，觀眾看到的是一個沒有人的畫面。這種情況比想像中常見——訪談節目經常在講者之間切換全景鏡頭。
+## Phase 4b：Overlay 卡片檢查（必要步驟）
 
-overlay 卡片的作用是在空畫面片段上覆蓋一張半透明黑底文字卡，讓觀眾的注意力從空畫面轉移到文字內容上。
+使用 `--fg-size` 做正方形裁切時，原始 16:9 畫面會被裁成正方形，講者如果不在畫面中央，裁切後中央區域可能是空桌子或器材。overlay 卡片的作用是在空畫面片段上覆蓋一張半透明黑底文字卡。
 
 #### 檢查流程（不可跳過）
 
-只要使用了 `--fg-size` 參數，就必須在 Phase 5 渲染完成後、交付給使用者前執行以下檢查：
+只要使用了 `--fg-size` 參數，就必須在渲染完成後、交付給使用者前執行以下檢查：
 
 1. **截圖檢查每個片段**：用 ffmpeg 從原始影片在每個片段的時間點截取一幀，裁切成與 `--fg-size` 相同的正方形（如 `crop=1080:1080:(iw-1080)/2:(ih-1080)/2`），用 Read tool 逐一查看是否有人物在畫面中央
 2. **標記需要 overlay 的片段**：中央區域沒有人物、或只露出人物邊緣的片段，都需要加 overlay
@@ -213,15 +177,7 @@ overlay 卡片的作用是在空畫面片段上覆蓋一張半透明黑底文字
 
 如果所有片段裁切後都有人物在中央，就不需要加 overlay——但這個結論必須是「看過截圖之後確認的」，不是「假設應該沒問題」。
 
-#### Overlay 卡片規格
-
-- **黑色圓角矩形**：寬度 80% 畫面、高度 ~56% 畫面，圓角 40px，alpha=210（~82% 不透明）
-- **文字樣式**：白色粗體字 + 黑色描邊（outline_width=3）+ 黑色陰影（shadow_offset=5）
-- **關鍵字高亮**：黃色 (255, 215, 0)，同樣有描邊和陰影
-- **字體大小**：普通行 72px，含高亮關鍵字的行 100px
-- **字體**：DroidSansFallbackFull 或 Noto Sans TC
-
-#### 使用方式
+#### Overlay 使用方式
 
 在 render 腳本的 `--overlays` 參數中傳入 JSON：
 
@@ -250,19 +206,11 @@ python3 <skill_path>/scripts/generate_overlay_card.py \
   --card-alpha 210
 ```
 
-#### ffmpeg overlay 原理
+</tool_rules>
 
-生成的 PNG 透過 ffmpeg 的 `overlay` filter 疊加，使用 `enable='between(t,start,end)'` 控制顯示時機：
+<output_contract>
 
-```
-ffmpeg -i video.mp4 -i overlay.png \
-  -filter_complex "[1:v]format=rgba[ov];[0:v][ov]overlay=0:400:enable='between(t,3.867,7.367)'[outv]" \
-  -map "[outv]" -map "0:a" ...
-```
-
-overlay 的位置對應前景影片的位置（`--fg-top` 值）。
-
-### Phase 5：輸出
+## Phase 5：輸出
 
 **交付前檢查清單：**
 
@@ -278,6 +226,8 @@ overlay 的位置對應前景影片的位置（`--fg-top` 值）。
 - `-b:a 192k`（音訊品質）
 
 將成品存到使用者的工作目錄，並提供 `computer://` 連結。
+
+</output_contract>
 
 ## 注意事項
 
