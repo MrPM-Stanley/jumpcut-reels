@@ -27,12 +27,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_DIR = os.path.dirname(SCRIPT_DIR)
 FONTS_DIR = None  # will be resolved at runtime
 
-# Try to find canvas-design fonts
+# Try to find canvas-design fonts (dynamically search all sessions)
+import glob as _glob
 _CANDIDATE_FONT_DIRS = [
     os.path.join(SKILL_DIR, "assets", "fonts"),
-    # Cowork environment
-    "/sessions/youthful-keen-darwin/mnt/.skills/skills/canvas-design/canvas-fonts",
-]
+] + _glob.glob("/sessions/*/mnt/.skills/skills/canvas-design/canvas-fonts")
 
 ZH_FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
